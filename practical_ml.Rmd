@@ -1,0 +1,105 @@
+---
+title: "Practical Machine Learning Assesment Week 4"
+author: "Kacper Lichota"
+date: "25/11/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Assesment description
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset). 
+
+## Loading libraries 
+```{r libraries}
+require(tidyverse)
+require(readxl)
+require(janitor)
+require(skimr)
+require(caret)
+```
+
+## Load data sets
+
+Training and testing sets were downloaded and need to be loaded first:
+
+```{r data load}
+
+train_set <- read_csv("data/pml-training.csv")
+test_set <- read_csv("data/pml-testing.csv")
+
+```
+
+## Initial look into training data
+```{r}
+skim(train_set)
+```
+## Data clean
+It appears from above analysis of training data set that some of the columns are mainly blank so will be excluded from modeling.
+In addition first column seems to be identifier. Variable of interest will be mainly numeric ones. For further work following variables 
+will be kept "classe" - outcome and variables starting with "gyros","accel","magnet","total","user"
+
+
+```{r train set prep}
+
+train_set_sel <- train_set %>% select(starts_with(c("gyros","accel","magnet","total","user")),classe) 
+
+train_set_sel <- train_set_sel %>% mutate(classe=as.factor(classe))
+
+```
+
+## Next step is to prepare data splits 
+
+```{r}
+set.seed(1234)
+
+inTrain <- createDataPartition(y=train_set_sel$classe,p = 0.7,list = F)
+
+training <- train_set_sel[inTrain,] 
+testing <- train_set_sel[-inTrain,]
+```
+
+
+## Model building
+
+To start with random forest will be used without any pre processing. Next will evaluate its performance.
+
+```{r}
+modFit_rf <- train(classe~.,data = training,method="rf",verbose=F)
+```
+## Look into model
+
+Training took a long time on my machine so for final html knit I decided to comment it out. 
+
+```{r}
+modFit_rf
+```
+
+## Evaluate on testing slice
+
+
+
+```{r}
+pred <- predict(modFit_rf,testing)
+
+
+confusionMatrix(pred,testing$classe)
+```
+
+Accuracy of 0.98 - quite high, happy with this level.
+
+
+## Final prediction on suplied testing data 
+
+```{r}
+pred_final <- predict(modFit_rf,test_set)
+
+pred_final
+```
+#Final note
+
+Model performed exceptionally well without any pre processing. 
+
+
